@@ -90,7 +90,7 @@ return encodeResponse(ResponseStatus::kOk, Slice());
             return encodeResponse(ResponseStatus::kOk, Slice());
         }
         default:
-            return encodeResponse(ResponseStatus::kError, Slice("Unknown command"));
+            return encodeResponse(ResponseStatus::kError, Slice("Unknown command", 15));
     }
 }
 
