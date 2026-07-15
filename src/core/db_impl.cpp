@@ -1,4 +1,5 @@
 ﻿#include "core/db_impl.h"
+#include "core/sstable_builder.h"
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -23,7 +24,7 @@ DBImpl::~DBImpl() {
     if (compaction_mgr_) compaction_mgr_->stop();
 }
 
-Status DBImpl::open(const Options& options, std::unique_ptr<DBImpl>* dbptr) {
+Status DBImpl::open(const Options& options, std::unique_ptr<DB>* dbptr) {
     auto impl = std::make_unique<DBImpl>(options);
     Status s = impl->recover();
     if (!s.ok()) return s;

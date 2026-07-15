@@ -1,5 +1,6 @@
 ﻿#include "core/compaction.h"
 #include "core/sstable_builder.h"
+#include <unistd.h>
 #include <chrono>
 #include <iostream>
 

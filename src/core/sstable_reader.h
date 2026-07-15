@@ -1,7 +1,9 @@
 ﻿#pragma once
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 #include "core/block.h"
 #include "minikv/slice.h"
 #include "minikv/status.h"

@@ -1,4 +1,5 @@
 ﻿#include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -13,7 +14,7 @@ int main() {
     ::system("rm -rf /tmp/minikv_bench");
 
     std::unique_ptr<DB> db;
-    auto s = core::DBImpl::open(opts, reinterpret_cast<std::unique_ptr<core::DBImpl>*>(&db));
+    auto s = core::DBImpl::open(opts, &db);
     if (!s.ok()) { std::cerr << s.ToString() << std::endl; return 1; }
 
     int N = 1000000;

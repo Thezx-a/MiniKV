@@ -18,7 +18,7 @@ public:
     explicit DBImpl(const Options& options);
     ~DBImpl();
 
-    static Status open(const Options& options, std::unique_ptr<DBImpl>* dbptr);
+    static Status open(const Options& options, std::unique_ptr<DB>* dbptr);
 
     Status put(const WriteOptions& opts, const Slice& key, const Slice& value) override;
     Status get(const ReadOptions& opts, const Slice& key, std::string* value) override;

@@ -1,6 +1,9 @@
 ﻿#pragma once
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 #include "minikv/slice.h"
@@ -43,8 +46,30 @@ public:
         return true;
     }
 
-    void persist(const std::string& path) const;
-    static std::unique_ptr<BloomFilter> load(const std::string& path);
+void persist(const std::string& path) const {
+        std::ofstream ofs(path, std::ios::binary);
+        ofs.write(reinterpret_cast<const char*>(&num_hashes_), sizeof(num_hashes_));
+        ofs.write(reinterpret_cast<const char*>(&bits_per_key_), sizeof(bits_per_key_));
+        uint64_t sz = bits_.size();
+        ofs.write(reinterpret_cast<const char*>(&sz), sizeof(sz));
+        ofs.write(reinterpret_cast<const char*>(bits_.data()), bits_.size());
+    }
+
+    static std::unique_ptr<BloomFilter> load(const std::string& path) {
+        std::ifstream ifs(path, std::ios::binary);
+        if (!ifs) return nullptr;
+        int nh, bk;
+        uint64_t sz;
+        ifs.read(reinterpret_cast<char*>(&nh), sizeof(nh));
+        ifs.read(reinterpret_cast<char*>(&bk), sizeof(bk));
+        ifs.read(reinterpret_cast<char*>(&sz), sizeof(sz));
+        auto bf = std::unique_ptr<BloomFilter>(new BloomFilter(1, 0.01));
+        bf->num_hashes_ = nh;
+        bf->bits_per_key_ = bk;
+        bf->bits_.resize(sz);
+        ifs.read(reinterpret_cast<char*>(bf->bits_.data()), sz);
+        return bf;
+    }
 
     size_t memoryUsage() const { return bits_.size(); }
     int numHashes() const { return num_hashes_; }

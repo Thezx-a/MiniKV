@@ -82,7 +82,7 @@ std::optional<std::string> SSTableReader::get(const Slice& key) const {
     std::string blockData(blockLen, '\0');
     ::read(fd_, blockData.data(), blockLen);
 
-    BlockReader reader(Slice(blockData));
+    BlockReader reader{Slice(blockData)};
     return reader.get(key);
 }
 

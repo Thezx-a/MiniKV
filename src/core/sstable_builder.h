@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <cstdint>
+#include <memory>
 #include <string>
 #include "core/block.h"
 #include "core/bloom_filter.h"

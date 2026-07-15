@@ -1,4 +1,5 @@
 ﻿#include "core/version.h"
+#include <algorithm>
 
 namespace minikv {
 namespace core {

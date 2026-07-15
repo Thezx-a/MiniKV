@@ -52,7 +52,7 @@ void Server::handleNewConnection() {
         return processRequest(raw);
     });
 
-    loop_.addEvent(connFd, EPOLLIN, [this, conn](uint32_t events) {
+    loop_.addEvent(connFd, EPOLLIN, [this, conn, connFd](uint32_t events) {
         conn->onReadable();
         if (conn->shouldClose()) {
             loop_.removeEvent(connFd);

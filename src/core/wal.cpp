@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstdio>
 #include <cstring>
 #include "utils/crc32.h"
 #include "utils/coding.h"

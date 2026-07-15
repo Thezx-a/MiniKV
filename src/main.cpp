@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <csignal>
@@ -30,8 +31,8 @@ int main(int argc, char* argv[]) {
     opts.db_path = dbPath;
     opts.wal_sync = false;
 
-    std::unique_ptr<::minikv::DB> db;
-    auto status = ::minikv::core::DBImpl::open(opts, reinterpret_cast<std::unique_ptr<::minikv::core::DBImpl>*>(&db));
+std::unique_ptr<::minikv::DB> db;
+    auto status = ::minikv::core::DBImpl::open(opts, &db);
     if (!status.ok()) {
         std::cerr << "Failed to open DB: " << status.message() << std::endl;
         return 1;
@@ -42,5 +43,6 @@ int main(int argc, char* argv[]) {
     ::minikv::network::Server server(host, port, db.get());
     server.run();
 
-    LOG_INFO("MiniKV shutting down");
+LOG_INFO("MiniKV shutting down");
     return 0;
+}

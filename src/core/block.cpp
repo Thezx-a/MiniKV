@@ -1,4 +1,5 @@
 ﻿#include "core/block.h"
+#include <algorithm>
 #include <cstring>
 #include "utils/coding.h"
 #include "utils/crc32.h"

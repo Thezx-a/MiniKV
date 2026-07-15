@@ -25,10 +25,11 @@ add_library(minikv STATIC
     src/core/compaction.cpp
     src/core/version.cpp
     src/core/db_impl.cpp
+    src/core/status.cpp
     src/network/event_loop.cpp
     src/network/server.cpp
     src/network/connection.cpp
-    src/utils/thread_pool.cpp
+    src/utils/crc32.cpp
     src/utils/env_posix.cpp
 )
 
