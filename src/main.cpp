@@ -27,11 +27,11 @@ int main(int argc, char* argv[]) {
     ::signal(SIGINT, signalHandler);
     ::signal(SIGTERM, signalHandler);
 
-    Options opts;
+::minikv::Options opts;
     opts.db_path = dbPath;
     opts.wal_sync = false;
 
-std::unique_ptr<::minikv::DB> db;
+    std::unique_ptr<::minikv::DB> db;
     auto status = ::minikv::core::DBImpl::open(opts, &db);
     if (!status.ok()) {
         std::cerr << "Failed to open DB: " << status.message() << std::endl;
