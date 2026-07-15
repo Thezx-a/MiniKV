@@ -63,7 +63,7 @@ void Server::handleNewConnection() {
 
 std::string Server::processRequest(const std::string& rawData) {
     if (rawData.size() < sizeof(RequestHeader)) {
-        return encodeResponse(ResponseStatus::kError, "");
+        return encodeResponse(ResponseStatus::kError, Slice());
     }
     auto* hdr = reinterpret_cast<const RequestHeader*>(rawData.data());
     const char* key = rawData.data() + sizeof(RequestHeader);
@@ -77,20 +77,20 @@ std::string Server::processRequest(const std::string& rawData) {
     switch (cmd) {
         case Cmd::kPut: {
             db_->put(wopts, Slice(key, hdr->key_len), Slice(val, valLen));
-            return encodeResponse(ResponseStatus::kOk, "");
+return encodeResponse(ResponseStatus::kOk, Slice());
         }
         case Cmd::kGet: {
             std::string value;
             Status s = db_->get(ropts, Slice(key, hdr->key_len), &value);
             if (s.ok()) return encodeResponse(ResponseStatus::kOk, value);
-            return encodeResponse(ResponseStatus::kNotFound, "");
+            return encodeResponse(ResponseStatus::kNotFound, Slice());
         }
         case Cmd::kDel: {
             db_->del(wopts, Slice(key, hdr->key_len));
-            return encodeResponse(ResponseStatus::kOk, "");
+            return encodeResponse(ResponseStatus::kOk, Slice());
         }
         default:
-            return encodeResponse(ResponseStatus::kError, "Unknown command");
+            return encodeResponse(ResponseStatus::kError, Slice("Unknown command"));
     }
 }
 
