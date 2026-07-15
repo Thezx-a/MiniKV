@@ -7,7 +7,8 @@ namespace minikv {
 
 class Slice {
 public:
-    Slice() : data_(""), size_(0) {}
+Slice() : data_(""), size_(0) {}
+    Slice(const char* d) : data_(d), size_(d ? std::strlen(d) : 0) {}
     Slice(const char* d, size_t n) : data_(d), size_(n) {}
     Slice(const std::string& s) : data_(s.data()), size_(s.size()) {}
     Slice(std::string_view sv) : data_(sv.data()), size_(sv.size()) {}
