@@ -13,8 +13,8 @@ option(ENABLE_TESTS "Enable unit tests" OFF)
 option(ENABLE_BENCHMARKS "Enable benchmarks" OFF)
 option(ENABLE_SANITIZERS "Enable AddressSanitizer and ThreadSanitizer" OFF)
 
-include(${CMAKE_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/Sanitizers.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Sanitizers.cmake)
 
 add_library(minikv STATIC
     src/core/wal.cpp
@@ -34,23 +34,28 @@ add_library(minikv STATIC
 )
 
 target_include_directories(minikv PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_compile_features(minikv PUBLIC cxx_std_17)
 apply_compiler_warnings(minikv)
 apply_sanitizers(minikv)
 
-add_executable(minikv_server src/main.cpp)
-target_link_libraries(minikv_server PRIVATE minikv)
-
-if(ENABLE_TESTS)
-    include(${CMAKE_SOURCE_DIR}/cmake/FetchGoogleTest.cmake)
-    enable_testing()
-    add_subdirectory(tests)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    add_executable(minikv_server src/main.cpp)
+    target_link_libraries(minikv_server PRIVATE minikv)
 endif()
 
-if(ENABLE_BENCHMARKS)
-    add_subdirectory(benches)
+# Tests and benchmarks only when MiniKV is the top-level project
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    if(ENABLE_TESTS)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchGoogleTest.cmake)
+        enable_testing()
+        add_subdirectory(tests)
+    endif()
+
+    if(ENABLE_BENCHMARKS)
+        add_subdirectory(benches)
+    endif()
 endif()
