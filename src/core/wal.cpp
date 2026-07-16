@@ -70,8 +70,7 @@ Status WAL::truncate() {
         ::close(fd_);
         fd_ = -1;
     }
-    std::string deleted = path_ + ".deleted";
-    ::rename(path_.c_str(), deleted.c_str());
+    ::unlink(path_.c_str());
     return Status::Ok();
 }
 

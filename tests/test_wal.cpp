@@ -1,5 +1,6 @@
 ﻿#include <gtest/gtest.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include "core/wal.h"
 using namespace minikv::core;
 
@@ -15,6 +16,6 @@ TEST(WALTest, Truncate) {
     std::string path = "/tmp/minikv_wal_trunc.log";
     ::unlink(path.c_str());
     { WAL wal(path); wal.append(minikv::Slice("data")); wal.truncate(); }
-    EXPECT_FALSE(WAL(path).exists());
-    ::unlink((path + ".deleted").c_str());
+    struct stat st;
+    EXPECT_NE(::stat(path.c_str(), &st), 0);
 }
