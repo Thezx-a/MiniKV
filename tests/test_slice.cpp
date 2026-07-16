@@ -12,7 +12,7 @@ TEST(SliceTest, FromString) {
     std::string str = "hello";
     Slice s(str);
     EXPECT_EQ(s.size(), 5u);
-    EXPECT_EQ(s.ToString(), "hello");
+    EXPECT_EQ(s.toString(), "hello");
 }
 
 TEST(SliceTest, Compare) {
