@@ -1,10 +1,11 @@
 ﻿#include "utils/crc32.h"
+#include <mutex>
 
 namespace minikv {
 namespace utils {
 
 static uint32_t crc_table[256];
-static bool table_initialized = false;
+static std::once_flag crc_init_flag;
 
 static void initCRC() {
     for (uint32_t i = 0; i < 256; ++i) {
@@ -15,11 +16,10 @@ static void initCRC() {
         }
         crc_table[i] = c;
     }
-    table_initialized = true;
 }
 
 uint32_t crc32c(const char* data, int len) {
-    if (!table_initialized) initCRC();
+    std::call_once(crc_init_flag, initCRC);
     uint32_t crc = 0xFFFFFFFF;
     for (int i = 0; i < len; ++i)
         crc = crc_table[(crc ^ static_cast<unsigned char>(data[i])) & 0xFF] ^ (crc >> 8);

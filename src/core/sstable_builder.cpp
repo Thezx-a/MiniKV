@@ -52,11 +52,11 @@ Status SSTableBuilder::flushDataBlock() {
 
     // Update index
     std::string indexEntry;
+    utils::encodeVariant32(indexEntry, static_cast<uint32_t>(last_key_.size()));
     indexEntry.append(last_key_);
     char handle[16];
     utils::encodeFixed64(handle, block_offset);
     utils::encodeFixed64(handle + 8, block_data.size() + 8);
-    utils::encodeVariant32(indexEntry, static_cast<uint32_t>(last_key_.size()));
     indexEntry.append(handle, 16);
     index_block_.append(indexEntry);
 

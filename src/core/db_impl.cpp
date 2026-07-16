@@ -1,5 +1,6 @@
 ﻿#include "core/db_impl.h"
 #include "core/sstable_builder.h"
+#include "utils/coding.h"
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -37,12 +38,22 @@ Status DBImpl::open(const Options& options, std::unique_ptr<DB>* dbptr) {
 Status DBImpl::recover() {
     std::string wal_path = db_path_ + "/wal.log";
     wal_ = std::make_unique<WAL>(wal_path);
+    memtable_ = std::make_unique<MemTable>(options_.memtable_size);
     auto records = wal_->replay();
     for (const auto& record : records) {
-        // Simplified: would decode BatchOp from record
-        seq_++;
+        const char* p = record.data();
+        const char* end = record.data() + record.size();
+        while (p < end) {
+            uint8_t type = static_cast<uint8_t>(*p++);
+            uint32_t keyLen = utils::decodeFixed32(p); p += 4;
+            uint32_t valLen = utils::decodeFixed32(p); p += 4;
+            Slice key(p, keyLen); p += keyLen;
+            Slice value(p, valLen); p += valLen;
+            bool isDelete = (type == 2);
+            memtable_->put(key, value, seq_, isDelete);
+            seq_++;
+        }
     }
-    memtable_ = std::make_unique<MemTable>(options_.memtable_size);
     return Status::Ok();
 }
 
@@ -66,9 +77,23 @@ Status DBImpl::write(const WriteOptions& opts, const WriteBatch& batch) {
         bool isDel = (op.type == BatchOpType::kDelete);
         memtable_->put(Slice(op.key), Slice(op.value), opSeq, isDel);
     }
-    if (wal_ && options_.wal_sync && opts.sync) {
-        Status s = wal_->sync();
-        if (!s.ok()) return s;
+    if (wal_) {
+        std::string data;
+        for (const auto& op : batch.ops()) {
+            data.push_back(static_cast<char>(static_cast<uint8_t>(op.type)));
+            char lenBuf[4];
+            utils::encodeFixed32(lenBuf, static_cast<uint32_t>(op.key.size()));
+            data.append(lenBuf, 4);
+            utils::encodeFixed32(lenBuf, static_cast<uint32_t>(op.value.size()));
+            data.append(lenBuf, 4);
+            data.append(op.key);
+            data.append(op.value);
+        }
+        wal_->append(Slice(data));
+        if (options_.wal_sync && opts.sync) {
+            Status s = wal_->sync();
+            if (!s.ok()) return s;
+        }
     }
     maybeFlush();
     return Status::Ok();

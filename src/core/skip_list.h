@@ -13,7 +13,7 @@ namespace core {
 inline uint64_t packInternalKey(const Slice& userKey, uint64_t seq, uint8_t type) {
     uint64_t h = 0;
     for (size_t i = 0; i < userKey.size(); ++i) h = h * 31 + static_cast<unsigned char>(userKey[i]);
-    return (h << 8) | (seq << 4) | type;
+    return (h << 16) | ((seq & 0xFFF) << 4) | (type & 0xF);
 }
 
 struct SkipNode {
@@ -63,7 +63,7 @@ public:
                 x->forward[i] = update[i]->forward[i];
                 update[i]->forward[i] = x;
             }
-            mem_usage_ += sizeof(SkipNode) + value.size() + key;
+            mem_usage_ += sizeof(SkipNode) + value.size() + sizeof(key);
         }
     }
 
@@ -92,7 +92,7 @@ public:
                 if (update[i]->forward[i] != x) break;
                 update[i]->forward[i] = x->forward[i];
             }
-            mem_usage_ -= x->value.size();
+            mem_usage_ -= sizeof(SkipNode) + x->value.size() + sizeof(x->key);
             delete x;
             while (max_level_ > 0 && head_->forward[max_level_] == nullptr) --max_level_;
         }

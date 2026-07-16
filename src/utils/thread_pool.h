@@ -12,7 +12,7 @@ namespace utils {
 
 class ThreadPool {
 public:
-    explicit ThreadPool(size_t num_threads = 2) : running_(false) {
+    explicit ThreadPool(size_t num_threads = 2) : running_(true) {
         for (size_t i = 0; i < num_threads; ++i)
             workers_.emplace_back([this] { workerLoop(); });
     }
@@ -37,7 +37,6 @@ public:
 
 private:
     void workerLoop() {
-        running_ = true;
         while (running_) {
             std::function<void()> task;
             {

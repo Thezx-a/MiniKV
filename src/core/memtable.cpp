@@ -17,13 +17,14 @@ void MemTable::put(const Slice& userKey, const Slice& value, uint64_t seq, bool 
 }
 
 std::optional<std::string> MemTable::get(const Slice& userKey, uint64_t seq) const {
-    uint64_t searchKey = packInternalKey(userKey, seq, 1);
+    uint64_t userKeyPart = packInternalKey(userKey, 0, 0);
     {
         std::shared_lock<std::shared_mutex> lock(mutex_);
         auto entries = table_->entries();
         for (auto it = entries.rbegin(); it != entries.rend(); ++it) {
+            if ((it->first & ~0xFFFFULL) != userKeyPart) continue;
             uint8_t type = static_cast<uint8_t>(it->first & 0xF);
-            if (type == 2) return std::nullopt;  // tombstone
+            if (type == 2) return std::nullopt;
             if (type == 1) return it->second;
         }
     }

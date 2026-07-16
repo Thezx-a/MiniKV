@@ -58,11 +58,14 @@ std::unique_ptr<SSTableReader> SSTableReader::open(const std::string& path) {
         offset = (p + 16) - idxData.data();
     }
 
+    reader->bloom_ = BloomFilter::load(path + ".bloom");
+
     return reader;
 }
 
 std::optional<std::string> SSTableReader::get(const Slice& key) const {
     if (index_entries_.empty()) return std::nullopt;
+    if (bloom_ && !bloom_->mightContain(key)) return std::nullopt;
 
     // Binary search index to find the block that might contain key
     auto it = std::upper_bound(
