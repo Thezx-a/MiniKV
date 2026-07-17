@@ -18,29 +18,87 @@
 
 MiniKV is a **from-scratch implementation** of the core architecture behind LevelDB and RocksDB — the LSM-Tree (Log-Structured Merge-Tree). It's designed as a drop-in storage engine for applications needing fast writes with ordered key lookups.
 
+### Write Path
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant DB as DB
+    participant WAL as WAL (Disk)
+    participant Mem as MemTable
+    participant SST as SSTable (Disk)
+
+    Client->>DB: Put(key, value)
+    DB->>WAL: Append record
+    WAL-->>DB: ACK (durable)
+    DB->>Mem: Insert into SkipList
+    Mem-->>DB: OK
+
+    alt MemTable full
+        DB->>Mem: Create new MemTable
+        DB->>SST: Flush old MemTable to L0
+        SST-->>DB: SSTable file written
+    end
+
+    DB-->>Client: OK
+
+    Note over DB,SST: Compaction runs in background
 ```
- Write Path                          Read Path
- ┌──────────┐                       ┌──────────┐
- │  Client   │                       │  Client   │
- └────┬─────┘                       └────┬─────┘
-      │                                   │
-      ▼                                   │
- ┌──────────┐    ┌──────────┐            │
- │   WAL    │───▶│ MemTable │            │
- │ (durable)│    │ (sorted) │            │
- └──────────┘    └────┬─────┘            │
-                      │ flush             │
-                      ▼                   │
-                 ┌──────────┐             │
-                 │  L0 SST  │─────────────┤
-                 │ (sorted) │   binary    │
-                 └────┬─────┘   search    │
-                      │ merge             │
-                      ▼                   │
-                 ┌──────────┐             │
-                 │  L1 SST  │─────────────┘
-                 │ (sorted) │
-                 └──────────┘
+
+### Read Path
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant DB as DB
+    participant Mem as MemTable
+    participant BF as Bloom Filter
+    participant SST as SSTables
+
+    Client->>DB: Get(key)
+    DB->>Mem: Check MemTable
+    
+    alt Found in MemTable
+        Mem-->>DB: value
+    else Not found
+        DB->>SST: Check L0 SSTables
+        loop For each SSTable
+            DB->>BF: MightContain(key)?
+            alt BF says "definitely not"
+                BF-->>DB: Skip this SSTable
+            else BF says "maybe"
+                DB->>SST: Binary search in SSTable
+                SST-->>DB: value or not found
+            end
+        end
+    end
+
+    DB-->>Client: value or NotFound
+```
+
+### LSM-Tree Architecture
+
+```mermaid
+graph TB
+    subgraph "Memory"
+        WT[Write Thread] --> ML[MemTable<br/>SkipList]
+    end
+
+    subgraph "Disk"
+        ML -->|flush| L0[L0 SSTables<br/>overlapping]
+        L0 -->|compact| L1[L1 SSTables<br/>non-overlapping]
+        L1 -->|compact| L2[L2 SSTables<br/>larger]
+    end
+
+    subgraph "WAL"
+        WT --> WAL[Write-Ahead Log<br/>append-only]
+    end
+
+    style ML fill:#e1f5fe
+    style L0 fill:#f3e5f5
+    style L1 fill:#e8f5e9
+    style L2 fill:#fff3e0
+    style WAL fill:#fce4ec
 ```
 
 ---
@@ -89,13 +147,6 @@ db->Get("key", &val);  // val == "value"
 delete db;
 ```
 
-### Link in CMake
-
-```cmake
-add_subdirectory(path/to/MiniKV)
-target_link_libraries(your_app minikv)
-```
-
 ---
 
 ## Project Structure
@@ -131,25 +182,51 @@ MiniKV/
 
 ---
 
-## Architecture
+## Bloom Filter Efficiency
 
-MiniKV implements a **multi-level LSM-Tree**:
-
+```mermaid
+pie title FP Rate by Bits/Key (k=7)
+    "4 bits/key: 3.1% FP" : 3.1
+    "8 bits/key: 0.8% FP" : 0.8
+    "12 bits/key: 0.2% FP" : 0.2
+    "16 bits/key: 0.05% FP" : 0.05
+    "Effective (99.95%)" : 99.95
 ```
-Level 0:   [SSTable] [SSTable] [SSTable]     ← from MemTable flush
-            ↓ compact
-Level 1:   [    Sorted SSTable    ]            ← merged, non-overlapping
-            ↓ compact
-Level 2:   [        Sorted SSTable            ] ← larger, fewer files
-```
 
-**Write amplification** is managed by leveled compaction — each level is at most 10× the previous. **Read amplification** is reduced by Bloom filters that skip entire SSTables without touching disk.
+| Bits/Key | FP Rate | Memory per 1M keys |
+|----------|---------|-------------------|
+| 4 | 3.1% | 500 KB |
+| 8 | 0.8% | 1 MB |
+| 12 | 0.2% | 1.5 MB |
+| 16 | 0.05% | 2 MB |
 
 ---
 
 ## Tests
 
-22 unit tests covering:
+```mermaid
+graph LR
+    subgraph "22 Unit Tests"
+        A[SkipList: 3]
+        B[BloomFilter: 3]
+        C[WAL: 3]
+        D[SSTable: 2]
+        E[Compaction: 2]
+        F[DB: 5]
+        G[ThreadPool: 2]
+        H[Coding: 2]
+    end
+
+    A -->|backend| MEM[MemTable]
+    B -->|filter| SST[SSTable]
+    C -->|durable| WAL[Write Path]
+    D -->|storage| L0[L0 SSTables]
+    E -->|merge| L1[L1 SSTables]
+    F -->|integration| DB[Full DB]
+
+    style A fill:#e1f5fe
+    style F fill:#e8f5e9
+```
 
 | Module | Tests | What's Verified |
 |--------|-------|-----------------|
